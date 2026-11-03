@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Cellar</title>
+    <meta name="theme-color" content="#547799">
+    <meta property="og:title" content="Cellar">
+    <meta property="og:image" content="https://getcellar.beer/img/cellar-icon.png">
+    <link rel="icon" href="../img/cellar-icon.png">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gray-100 text-gray-800">
+    <header class="sticky top-0 z-10 bg-[#547799] text-white shadow">
+        <div class="mx-auto max-w-2xl p-3">
+            <h1 id="title" class="truncate text-lg font-semibold">Loading beers…</h1>
+            <input id="filter" type="search" placeholder="Filter beers..." class="mt-2 w-full rounded bg-white px-3 py-2 text-gray-800 outline-none">
+        </div>
+    </header>
+
+    <main id="list" class="mx-auto max-w-2xl"></main>
+
+    <dialog id="photo" class="m-auto max-w-[95vw] overflow-hidden rounded-lg p-0 backdrop:bg-black/80">
+        <img id="photoImage" alt="" class="max-h-[75vh] w-full object-contain">
+        <div class="p-4">
+            <p id="photoTitle" class="font-semibold text-[#547799]"></p>
+            <p id="photoNote" class="mt-1 whitespace-pre-line text-sm text-gray-600"></p>
+        </div>
+    </dialog>
+
+    <script>
+        const api = 'https://cellarappapivnext.azurewebsites.net/api/cellar';
+        const params = new URLSearchParams(location.search);
+        const token = encodeURIComponent(params.get('token') ?? '');
+        const isCellar = params.get('type') === 'Cellar';
+        const defaultImage = 'https://untappd.akamaized.net/site/assets/images/temp/badge-beer-default.png';
+        const esc = s => String(s ?? '').replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
+        const normalize = s => s.toLowerCase().replaceAll("'", '');
+        let beers = [];
+
+        function render() {
+            const words = normalize(filter.value).split(' ').filter(Boolean);
+            const matches = beers.filter(b => words.every(w => normalize(`${b.beer.breweryName} ${b.beer.name}`).includes(w)));
+            const groups = Object.entries(Object.groupBy(matches, b => b.beer.breweryName));
+
+            list.innerHTML = groups.length === 0
+                ? '<p class="p-8 text-center text-gray-500">No beers found.</p>'
+                : groups.map(([brewery, items]) => `
+                    <h2 class="bg-gray-200 px-3 py-2 text-sm font-semibold text-[#547799]">${esc(brewery)}</h2>
+                    ${items.map(b => `
+                        <button data-id="${b.id}" class="flex w-full items-center gap-3 border-b border-gray-200 bg-white px-3 py-2 text-left">
+                            <img src="${esc(b.beer.image || defaultImage)}" onerror="this.src='${defaultImage}'" alt="" class="size-12 shrink-0 rounded-full object-cover ring-1 ring-[#547799]">
+                            <div class="min-w-0 flex-1">
+                                <p class="truncate font-semibold text-[#547799]">${esc(b.beer.name)}</p>
+                                <p class="truncate text-sm text-gray-600">${esc(b.beer.styleABV)}</p>
+                                ${b.bottledOnDate ? `<p class="text-sm text-gray-600">Bottled: ${new Date(b.bottledOnDate).toLocaleDateString()}</p>` : ''}
+                            </div>
+                            <div class="shrink-0 text-right">
+                                <span class="rounded-full bg-[#547799] px-2 py-0.5 text-sm font-semibold text-white">x${b.totalCount}${b.price > 0 ? ` / $${b.price}` : ''}</span>
+                                <p class="mt-1 text-xs">${b.hasPhoto ? '📷' : ''} ${b.note ? '📝' : ''}</p>
+                            </div>
+                        </button>`).join('')}`).join('');
+        }
+
+        function show(b) {
+            photoImage.hidden = !b.hasPhoto;
+            photoImage.src = !b.hasPhoto ? '' : isCellar
+                ? `${api}/CellarBeerPicture?cellarToken=${token}&cellarId=${b.id}`
+                : `${api}/CollectionBeerPicture?token=${token}&cellarId=${b.id}`;
+            photoTitle.textContent = `${b.beer.breweryName} ${b.beer.name}`;
+            photoNote.textContent = b.note ?? '';
+            photo.showModal();
+        }
+
+        filter.oninput = render;
+        photo.onclick = () => photo.close();
+        list.onclick = e => {
+            const b = beers.find(x => x.id == e.target.closest('button[data-id]')?.dataset.id);
+            if (b && (b.hasPhoto || b.note)) show(b);
+        };
+
+        fetch(`${api}/${isCellar ? 'GetCellarBeersWeb' : 'GetCollectionBeersWeb'}?token=${token}`)
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then(data => {
+                document.title = title.textContent = `Cellar${isCellar ? '' : ' Collection'}: ${data.name} (${data.untappdUser})`;
+                beers = data.beers.sort((a, b) => `${a.beer.breweryName} ${a.beer.name}`.localeCompare(`${b.beer.breweryName} ${b.beer.name}`));
+                render();
+            })
+            .catch(() => title.textContent = 'Could not load beers. Check the link and try again.');
+    </script>
+</body>
+</html>

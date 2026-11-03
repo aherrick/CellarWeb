@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Cellar - Beer Inventory</title>
+    <meta name="description" content="Inventory your beers and share with others. Organize and share Collections from your Cellar. Update your Wish List and never forget the beers you're after.">
+    <meta name="theme-color" content="#547799">
+    <meta name="apple-itunes-app" content="app-id=1182737198">
+    <meta property="og:title" content="Cellar">
+    <meta property="og:url" content="https://getcellar.beer/">
+    <meta property="og:image" content="https://getcellar.beer/img/cellar-icon.png">
+    <meta property="og:description" content="Inventory your beers and share with others.">
+    <link rel="icon" href="img/cellar-icon.png">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="border-t-8 border-[#547799] bg-gray-50 text-gray-700">
+    <header class="bg-white">
+        <div class="mx-auto max-w-3xl px-4 py-10 text-center">
+            <img src="img/cellar-icon.png" alt="" class="mx-auto size-20 rounded-2xl">
+            <h1 class="mt-4 text-4xl font-bold text-gray-900">Cellar</h1>
+            <p class="mt-1 text-gray-500">Beer Inventory!</p>
+            <p class="mx-auto mt-4 max-w-md">Inventory your beers and share with others. Organize and share Collections from your Cellar. Update your Wish List and never forget the beers you're after.</p>
+            <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+                <a href="https://apps.apple.com/app/id1182737198"><img src="img/app-store.jpg" alt="Download on the App Store" class="h-12"></a>
+                <a href="https://play.google.com/store/apps/details?id=com.slaptap.cellar"><img src="img/google-play.png" alt="Get it on Google Play" class="h-12"></a>
+            </div>
+        </div>
+    </header>
+
+    <main class="mx-auto max-w-3xl space-y-10 px-4 py-10">
+        <img src="img/screenshot.jpg" alt="Cellar app" class="mx-auto w-72 rounded-xl border border-gray-300 shadow">
+
+        <section class="overflow-hidden rounded-lg bg-white shadow">
+            <h2 class="border-b border-gray-200 px-4 py-3 font-semibold text-gray-900">Cellar Beers by Style</h2>
+            <table class="w-full text-sm">
+                <thead class="text-left text-gray-500">
+                    <tr><th class="px-4 py-2">Style</th><th class="px-4 py-2 text-right">Count</th></tr>
+                </thead>
+                <tbody id="styles" class="divide-y divide-gray-100"></tbody>
+            </table>
+        </section>
+    </main>
+
+    <footer class="bg-white">
+        <div class="mx-auto max-w-3xl space-y-4 px-4 py-10 text-center text-sm text-gray-500">
+            <p>Handcrafted with love over good beer<br>
+                <a href="https://x.com/andrew_herrick" class="text-[#547799] hover:underline">@andrew_herrick</a> &amp;
+                <a href="https://x.com/devkitt" class="text-[#547799] hover:underline">@devkitt</a></p>
+            <p>Support and feedback<br><a href="mailto:hi@getcellar.beer" class="text-[#547799] hover:underline">hi@getcellar.beer</a></p>
+            <p><a href="privacypolicy.htm" class="text-[#547799] hover:underline">Privacy Policy</a></p>
+            <a href="https://untappd.com"><img src="img/powered-by-untappd.png" alt="Powered by Untappd" class="mx-auto h-10"></a>
+        </div>
+    </footer>
+
+    <script>
+        const esc = s => String(s ?? '').replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
+
+        fetch('https://cellarappapivnext.azurewebsites.net/api/cellar/GetBeerStyleCount')
+            .then(r => r.json())
+            .then(rows => styles.innerHTML = rows.map(s =>
+                `<tr><td class="px-4 py-2">${esc(s.style)}</td><td class="px-4 py-2 text-right tabular-nums">${s.count.toLocaleString()}</td></tr>`).join(''));
+    </script>
+</body>
+</html>
